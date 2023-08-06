@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <style>
+        .letter{
+        font-family:Arial,sans-serif;
+        line-height:1.6;
+        border:1px solid #ccc;
+        padding:20px;
+        margin-top:40px;}
+    </style>
+
+
+
+</head>
+<body>
+{% include 'bootstrap-cdn.html' %}
+<div class="container-fluid">
+    <div class="row" style="display:flex;justify-content:left">
+        <h3>Patient Name:{{name}}</h3>
+        <h4>Age:{{age}}</h4>
+        <h6>Date:{{current_date}}</h6>
+
+    </div>
+    </div>
+
+<div class="container-fluid">
+    <div class="row" style="display:flex;justify-content:center">
+        <form action="/save_report" method="post">
+            <textarea name="report" rows="15" cols="80">{{answer}}</textarea>
+            <input type="submit" value="save report">
+        </form>
+    </div>
+</div>
+
+
+
+</body>
+</html>

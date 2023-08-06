@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+
+    <style>
+        .form-check-input[type="checkbox"]{
+        border-color:#007bff;
+<!--        background-color:#007bff;-->
+        }
+
+
+
+        .loading-bar{
+        width:0%;
+        height:5px;
+        background-color:#007bff;}
+    </style>
+
+</head>
+<body>
+{% include'navbar.html' %}
+{% include 'bootstrap-cdn.html' %}
+
+<div class="container-fluid" style="margin-top:30px">
+    <div class="row" style="display:flex;justify-content:center">
+        <div class="col-md-2" style=display:flex;justify-content:center;flex-direction:column;align-items:center">
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault1" name="medicalReport"
+                       onclick="toggleMedicalReportFields(1)">
+                <label class="form-check-label" for="flexCheckDefault1">
+                    Medical Report
+                </label>
+            </div>
+
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault2" name="medicalReport"
+                       onclick="toggleMedicalReportFields(2)">
+                <label class="form-check-label" for="flexCheckDefault2">
+                    Prescription
+                </label>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="container" style="margin-top: 20px">
+    <div class="row justify-content-center">
+        <div class="col col-md-6" style="display: flex; justify-content: center; flex-direction: column">
+            <div id="medicalReportsFields" style="display:none">
+                <form method="post" style="display:flex;justify-content:center;flex-direction:column;align-items:center">
+                {{form.csrf_token}}
+                {{form.patient_name(placeholder='Patient Name')}}
+                {{form.patient_age(placeholder='Patient Age',style='margin-top:20px;border-radius=20px')}}
+                {{form.chief_complaint(placeholder='Chief Complaint',style='margin-top:20px;height:100px')}}
+                {{form.generate(id='generate-button', style='margin-top:10px')}}
+                    </form>
+
+
+             <div id="spinner" class="spinner-border" role="status">
+  <span class="visually-hidden">Loading...</span>
+</div>
+
+<!--                <div class="form-group">-->
+<!--                    <label for="patientNameMed">Patient Name</label>-->
+<!--                    <input type="text" id="patientNameMed" name="patientNameMed" class="form-control">-->
+<!--                </div>-->
+
+            </div>
+        </div>
+    </div>
+
+
+        <div class="row justify-content-center">
+            <div class="col col-md-6" style="display: flex; justify-content: center; flex-direction: column">
+                <div id="prescriptionFields" style="display:none">
+                    <form method="post" style="display:flex;justify-content:center;flex-direction:column;align-items:center">
+                        {{form.csrf_token}}
+                        {{form.patient_name(placeholder='Patient Name')}}
+                        {{form.patient_age(placeholder='Patient Age',style='margin-top:20px')}}
+                        {{form.medication(placeholder='Medication',style='margin-top:20px')}}
+                        {{form.dosage(placeholder='Dose',style='margin-top:20px')}}
+                        {{form.others(placeholder='Others',style='margin-top:20px;height:100px')}}
+                        {{form.generate(id='generateBtn1',style='margin-top:10px')}}
+                    </form>
+                    </div>
+            </div>
+        </div>
+
+</div>
+
+
+
+<script>
+const generateBtn = document.getElementById('generate-button');
+const spinner = document.getElementById('spinner');
+
+<!--// Set an event listener on the "Generate" button-->
+generateBtn.addEventListener('click', () => {
+<!--  // Show the spinner when the "Generate" button is clicked-->
+  spinner.style.display = 'inline-block';
+
+<!--  // Simulate report generation (you can add your actual code here)-->
+  setTimeout(() => {
+<!--    // Once the report is generated (simulated here using a timeout of 2 seconds),-->
+<!--    // hide the spinner again-->
+    spinner.style.display = 'none';
+  }, 2000);
+<!--  // Change 2000 to the actual time it takes to generate the report-->
+});
+
+
+</script>
+
+
+
+<script>
+    function toggleMedicalReportFields(checkboxNumber) {
+        const medicalReportFields = document.getElementById('medicalReportsFields');
+        const prescriptionFields = document.getElementById('prescriptionFields');
+        const medicalReportCheckbox = document.getElementById('flexCheckDefault' + checkboxNumber);
+
+        if (checkboxNumber === 1) {
+            medicalReportFields.style.display = medicalReportCheckbox.checked ? 'block' : 'none';
+            prescriptionFields.style.display = 'none';
+        } else if (checkboxNumber === 2) {
+            prescriptionFields.style.display = medicalReportCheckbox.checked ? 'block' : 'none';
+            medicalReportFields.style.display = 'none';
+        }
+
+        // Uncheck other checkboxes in the group
+        const checkboxes = document.getElementsByName('medicalReport');
+        for (let i = 0; i < checkboxes.length; i++) {
+            if (checkboxes[i].id !== 'flexCheckDefault' + checkboxNumber) {
+                checkboxes[i].checked = false;
+            }
+        }
+    }
+</script>
+
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+</body>
+</html>

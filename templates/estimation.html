@@ -3,8 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+
 </head>
 <body>
+{% include 'navbar.html' %}
+{% include 'bootstrap-cdn.html' %}
+
+
+<div class="container-fluid" style="margin-top:40px">
+    <div class="row">
+        <div class="col-md-6" style="display:flex;justify-content:center; flex-direction: column; align-items: center;">
+            <div class="row">
+                <img src="{{image}}" alt="User Image" style="width:200px;height:175px;border-radius:50%"
+                     class="img-fluid">
+            </div>
+            <div class="row" style="margin-top:20px">
+                <p>"{{text}}"</p>
+            </div>
+            <div class="row">
+                <p>"{{author}}"</p>
+            </div>
+
+        </div>
+
+        <div class="col-md-6" style="display:flex;flex-direction:column;justify-content:center;align-items:center">
+        <div class="row">
+
+        </div>
+        </div>
+    </div>
+</div>
+
+
 
 </body>
 </html>

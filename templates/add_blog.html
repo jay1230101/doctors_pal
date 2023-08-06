@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+{% import 'bootstrap/wtf.html' as wtf %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+<link rel="stylesheet" href="{{url_for('static',filename='styles.css')}}">
+</head>
+<body>
+{% include 'bootstrap-cdn.html' %}
+
+
+<div class="container-fluid">
+    <div class="row"> <h4>Welcome:{{name}}</h4> </div>
+    <div class="row">
+        <div class="col col-md-4"></div>
+        <div class=" col col-md-8">
+    <form method="post" class="center padding-top">
+        {{form.csrf_token}}
+        {{ckeditor.load()}}
+        {{ckeditor.config(name='body')}}
+        <div>
+            {{wtf.quick_form(form,novalidate=True)}}
+        </div>
+    </form>
+            </div>
+        </div>
+</div>
+
+
+
+
+</body>
+</html>
+
+
+
+
+<!--{% extends "bootstrap/base.html" %}-->
+<!--{% import 'bootstrap/wtf.html' as wtf %}-->
+<!--{% block content %}-->
+
+<!--<link rel="stylesheet" href="{{url_for('static',filename='styles.css')}}">-->
+
+<!--<div class="container-fluid" style="display:flex;justify-content:center;margin-top:20px">-->
+<!--    <form method="post" style="display:flex;flex-direction:column">-->
+<!--        {{form.csrf_token}}-->
+<!--        {{ckeditor.load()}}-->
+<!--        {{ckeditor.config(name='body')}}-->
+<!--        <div style="height:200px;width:400px">-->
+<!--            {{wtf.quick_form(form,novalidate=True)}}-->
+<!--        </div>-->
+<!--    </form>-->
+<!--</div>-->
+<!--{% endblock %}-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

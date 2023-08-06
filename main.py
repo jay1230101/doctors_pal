@@ -11,14 +11,20 @@ from wtforms.validators import  Email,DataRequired
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from flask_mail import Mail,Message
+import random
+import openai
+import secrets
+import string
 import os
 import json
+import requests
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 GMAIL_SCOPES =['https://www.googleapis.com/auth/gmail.compose']
 
 app=Flask(__name__)
 
+# secret_key is a random characters that enable saving data from the session
 app.config['SECRET_KEY'] ="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"
 Bootstrap(app)
 app.config['SQLALCHEMY_DATABASE_URI']="sqlite:///app.db"
@@ -26,11 +32,26 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
 app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS']= True
+# we need to create app password after 2 step veritification to be able to generate a new app password
 app.config['MAIL_PASSWORD']="xhghldnmltdgpopw"
 app.config['MAIL_USERNAME']= "johny.achkar01@gmail.com"
 db=SQLAlchemy(app)
 ckeditor=CKEditor(app)
 migrate=Migrate(app,db)
+# the login manager will redirect non-users who are trying to access restricted pages to login
+login_manager= LoginManager()
+login_manager.init_app(app)
+login_manager.login_view='home'
+# the below login_manager.user_loader is mandatory for the login_manager
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+# API for chat GPT FOR JOHNY.ACHKAR01@GMAIL.COM
+# api_key=os.environ.get("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")
+# openai.api_key=api_key
+# API for chat GPT FOR JOHNY.ACHKAR03@GMAIL.COM
+# api_key=os.environ.get("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")
+openai.api_key="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"
 
 
 mail=Mail(app)
@@ -65,16 +86,16 @@ class User(UserMixin,db.Model):
     email = db.Column(db.String, unique=True)
     password=db.Column(db.String())
     date=db.Column(db.Date,default=datetime.utcnow)
-
+    image = db.Column(db.String())
 
 class Blog(db.Model):
     __tablename__='blog'
     id=db.Column(db.Integer,primary_key=True)
     title=db.Column(db.String(),unique=True)
-    subtitle=db.Column(db.String())
     body=db.Column(db.String())
     author=db.Column(db.String())
     date=db.Column(db.Date,default=datetime.utcnow)
+    image=db.Column(db.String())
 
 class Comment(db.Model):
     __tablename__='comment'
@@ -91,8 +112,26 @@ class Contact(db.Model):
     message=db.Column(db.String())
     date=db.Column(db.Date,default=datetime.utcnow)
 
-# with app.app_context():
-#     db.create_all()
+class Token(db.Model):
+    __tablename__='token'
+    id=db.Column(db.Integer,primary_key=True)
+    token_content=db.Column(db.String(),unique=True)
+    email = db.Column(db.String())
+    expiry_time=db.Column(db.DateTime,nullable=False,default=datetime.utcnow() + timedelta(seconds=120))
+
+# update user table by adding an image
+def update_user_image():
+    with app.app_context():
+        user = User.query.filter_by(email='johny.achkar03@gmail.com').first()
+        if user:
+            user.image = './static/bassem.png'
+            db.session.commit()
+            print('User image updated successfully')
+        else:
+            print('User not found')
+
+
+
 # now define class forms
 class ContactForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired()], render_kw={'autocomplete': 'off'})
@@ -106,6 +145,8 @@ class UserForm(FlaskForm):
     password=StringField('Password',validators=[DataRequired()],render_kw={'autocomplete':'off'})
     submit = SubmitField('Sign In')
     sign_up=SubmitField('Sign Up')
+
+
 
 @app.route('/register',methods=['GET','POST'])
 def register():
@@ -148,6 +189,7 @@ def home():
             flash("Incorrect Password")
             return redirect(url_for('home'))
         else:
+            session['user_email1']=email
             return redirect(url_for('estimation'))
     return render_template('index.html',form=form)
 
@@ -186,12 +228,199 @@ def contact():
             return redirect(url_for('home'))
     return render_template('contact.html', form=form)
 
-# @app.route('/estimation',methods=['GET','POST'])
-# def estimation():
+@app.route('/send_token',methods=['GET','POST'])
+def send_token():
+    form=UserForm()
+    if request.method=='POST':
+        gmail_creds = get_gmail_credentials()
+        email=request.form.get('email')
+        user=User.query.filter_by(email=email).first()
+        if user:
+            alphabet= string.ascii_letters + string.digits
+            # function call that uses the secrets module in python to randomly select one character from the alphabet string
+            # it loops 9 times to get 9 characters, each loop it gets one character, the result is a string of length 9
+            token = ''.join(secrets.choice(alphabet) for _ in range(9))
+            company_email="johny.achkar01@gmail.com"
+            email_content = "Dear User, this is your token to reset your password , please make sure to reset your password within 2 minutes"
+            email_subject = "Password change"
+            msg = Message(subject=email_subject, sender=company_email, recipients=[email])
+            msg.body = f"{email_content}\nToken: {token}"
+
+            expiry_time = datetime.utcnow() + timedelta(seconds=120)
+            new_token = Token(
+                token_content=token,
+                email=email,
+                expiry_time=expiry_time,
+            )
+            # to store token in Token table, you need to commit before sending the email
+            db.session.add(new_token)
+            db.session.commit()
+            session['reset_email'] = email
+            session['token']= token
+            try:
+                mail.init_app(app)
+                mail.send(msg)
+                return redirect(url_for('insert_token'))
+            except Exception as e:
+                flash(f"Error sending your token:{str(e)}")
+                return redirect(url_for('home'))
+
+            return redirect(url_for('insert_token'))
+
+        else:
+            flash('Email not in our database, Please sign up')
+            return redirect(url_for('register'))
+    return render_template('send_token.html',form=form)
+
+class Token_Form(FlaskForm):
+    token_content=StringField('Token Content',validators=[DataRequired()])
+    submit=SubmitField('Submit')
+
+@app.route('/insert_token',methods=['GET','POST'])
+def insert_token():
+    form=Token_Form()
+    if request.method=='POST':
+        token_con=request.form.get('token_content')
+        token_valid = Token.query.filter_by(token_content=token_con).first()
+        if token_valid:
+            if token_valid.expiry_time>datetime.utcnow():
+                return redirect(url_for('change_password'))
+            else:
+                flash('Token Expired')
+                return redirect(url_for('send_token'))
+        else:
+            flash('Incorrect Token')
+            return redirect(url_for('send_token'))
+    return render_template('insert_token.html',form=form)
+
+class Password_Form(FlaskForm):
+    password1=StringField('Password',validators=[DataRequired()],render_kw={'autocomplete':'off'})
+    password2=StringField('Confirm Password',validators=[DataRequired()],render_kw={'autocomplete':'off'})
+    submit = SubmitField('Reset Password')
+@app.route('/change_password',methods=['GET','POST'])
+def change_password():
+    form = Password_Form()
+    reset_email=session.get('reset_email')
+    if not reset_email:
+        flash('Invalid request')
+        return redirect(url_for('send_token'))
+    user = User.query.filter_by(email=reset_email).first()
+    if not user:
+        flash('Email does not match')
+        return redirect(url_for('register'))
+    if request.method=='POST':
+        password = request.form.get('password1')
+        password2=request.form.get('password2')
+
+        if password != password2:
+            flash("Passwords are not similar, please password should be similar")
+            return redirect(url_for('change_password'))
+        else:
+            # this is how we update or change the password
+            user.password= generate_password_hash(password,
+                                                         method='pbkdf2:sha256',
+                                                         salt_length=8)
+            db.session.commit()
+            flash("password successfuly updated")
+            return redirect(url_for('home'))
+    return render_template('change_password.html',form=form)
+
+# @app.route('/add_blog',methods=['GET','POST'])
+# def add_blog():
 
 
+@app.route('/estimation',methods=['GET','POST'])
+def estimation():
+    response = requests.get("https://type.fit/api/quotes")
+    data = response.json()
+    quotes_except_last = data[:-1]
+    rand=random.randint(0,len(quotes_except_last)-1)
+    text = quotes_except_last[rand]['text']
+    author = quotes_except_last[rand]['author'].split(',')[0]
+    email=session.get('user_email1')
+    user=User.query.filter_by(email=email).first()
+    if request.method=='GET':
+        if user:
+            image=user.image
+    return render_template('estimation.html',image=image,text=text,author=author)
 
 
+class Report_Form(FlaskForm):
+    patient_name=StringField('Patient Name',validators=[DataRequired()],render_kw={'autocomplete':'off'})
+    patient_age=StringField('Patient Age',validators=[DataRequired()],render_kw={'autocomplete':'off'})
+    chief_complaint=StringField('Chief Complaint',validators=[DataRequired()],render_kw={'autocomplete':'off'})
+    medication=StringField('Medication',validators=[DataRequired()],render_kw={'autocomplete':'off'})
+    dosage = StringField('Dosage',validators=[DataRequired()],render_kw={'autocomplete':'off'})
+    others=StringField('Others',validators=[DataRequired()],render_kw={'autocomplete':'off'})
+    generate = SubmitField('Generate')
+@app.route('/ask_ai',methods=['GET','POST'])
+def ask_ai():
+    form = Report_Form()
+    if request.method=='POST':
+        patient_name=request.form.get('patient_name')
+        patient_age=request.form.get('patient_age')
+        chief_complaint=request.form.get('chief_complaint')
+        standard_question="Please write a medical report for patient:"
+        final_question= standard_question + patient_name + f" who is{patient_age}" + f"and is complaining from{chief_complaint}"
+
+        response=openai.ChatCompletion.create(
+        model="gpt-3.5-turbo-0301",messages=[{"role":"user","content":final_question}]
+        )
+        answer=response['choices'][0]['message']['content']
+        session['final_q']=final_question
+        session['ans']=answer
+        session['patient_name']=patient_name
+        session['patient_age']=patient_age
+        return redirect(url_for('result'))
+    return render_template('ask_ai.html',form=form)
+
+
+class BlogForm(FlaskForm):
+    title=StringField('Add A Catchy Title',validators=[DataRequired()],render_kw={'autocomplete':'off'})
+    body = CKEditorField('Create Content',validators=[DataRequired()],render_kw={'autocomplete':'off'})
+    publish = SubmitField('Publish')
+
+@app.route('/add_blog',methods=['GET','POST'])
+def add_blog():
+    form=BlogForm()
+    user_email = session.get('user_email1')
+    name=current_user.name if current_user.is_authenticated else None
+    if request.method=='POST':
+        user = User.query.filter_by(email=user_email).first()
+        if not user:
+            flash('Email not authenticated,you cannot write a blog')
+            return redirect(url_for('home'))
+        else:
+
+            new_blog=Blog(
+                title=request.form.get('title'),
+                body=request.form.get('text'),
+                author=user_email,
+                date=datetime.utcnow(),
+                image=request.form.get('image')
+            )
+            db.session.add(new_blog)
+            db.session.commit()
+            return redirect(url_for('see_blog'))
+    return render_template('add_blog.html',form=form,name=name)
+
+
+@app.route('/result')
+def result():
+    question=session.get('final_q')
+    answer=session.get('ans')
+    patient_name=session.get('patient_name')
+    patient_age=session.get('patient_age')
+    current_date=datetime.now().strftime("%Y-%m-%d")
+    return render_template('result.html',question=question,answer=answer,name=patient_name,age=patient_age,current_date=current_date)
+
+@app.route('/save_report',methods=['POST','GET'])
+def save_report():
+    report_content=request.form.get('report')
+    return render_template('save_report.html',report_content=report_content)
 
 if __name__=="__main__":
+    with app.app_context():
+        db.create_all()
+        update_user_image()
     app.run(debug=True)
